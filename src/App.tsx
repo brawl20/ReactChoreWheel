@@ -7,18 +7,51 @@ import { Button } from './components/ui/button';
 import { RotateCw, ChevronRight, Settings } from 'lucide-react';
 
 export default function App() {
-  const [names, setNames] = useState<string[]>(['Alice', 'Bob', 'Charlie']);
-  const [tasks, setTasks] = useState<string[]>(['Dishes', 'Vacuum', 'Laundry', 'Trash']);
-  const [assignments, setAssignments] = useState<Record<string, string>>({});
-  const [rotation, setRotation] = useState(0);
+  const [names, setNames] = useState<string[]>(() => {
+    const saved = localStorage.getItem('choreWheel_names');
+    return saved ? JSON.parse(saved) : ['Alice', 'Bob', 'Charlie'];
+  });
+  const [tasks, setTasks] = useState<string[]>(() => {
+    const saved = localStorage.getItem('choreWheel_tasks');
+    return saved ? JSON.parse(saved) : ['Dishes', 'Vacuum', 'Laundry', 'Trash'];
+  });
+  const [assignments, setAssignments] = useState<Record<string, string>>(() => {
+    const saved = localStorage.getItem('choreWheel_assignments');
+    return saved ? JSON.parse(saved) : {};
+  });
+  const [rotation, setRotation] = useState(() => {
+    const saved = localStorage.getItem('choreWheel_rotation');
+    return saved ? parseFloat(saved) : 0;
+  });
   const [showManualAssignment, setShowManualAssignment] = useState(false);
+
+  // Save to localStorage whenever state changes
+  const updateNames = (newNames: string[]) => {
+    setNames(newNames);
+    localStorage.setItem('choreWheel_names', JSON.stringify(newNames));
+  };
+
+  const updateTasks = (newTasks: string[]) => {
+    setTasks(newTasks);
+    localStorage.setItem('choreWheel_tasks', JSON.stringify(newTasks));
+  };
+
+  const updateAssignmentsState = (newAssignments: Record<string, string>) => {
+    setAssignments(newAssignments);
+    localStorage.setItem('choreWheel_assignments', JSON.stringify(newAssignments));
+  };
+
+  const updateRotation = (newRotation: number) => {
+    setRotation(newRotation);
+    localStorage.setItem('choreWheel_rotation', newRotation.toString());
+  };
 
   const advanceWheel = () => {
     if (names.length === 0 || Object.keys(assignments).length === 0 || tasks.length === 0) return;
     
     // Rotate wheel by one segment
     const segmentAngle = 360 / names.length;
-    setRotation(rotation + segmentAngle);
+    updateRotation(rotation + segmentAngle);
     
     // Create new assignments based on tasks list order
     const newAssignments: Record<string, string> = {};
@@ -34,41 +67,42 @@ export default function App() {
       }
     });
     
-    setAssignments(newAssignments);
+    updateAssignmentsState(newAssignments);
   };
 
   const updateAssignment = (name: string, task: string) => {
-    setAssignments({ ...assignments, [name]: task });
+    const newAssignments = { ...assignments, [name]: task };
+    updateAssignmentsState(newAssignments);
   };
 
   const addName = (name: string) => {
     if (name.trim() && !names.includes(name.trim())) {
-      setNames([...names, name.trim()]);
+      updateNames([...names, name.trim()]);
     }
   };
 
   const removeName = (name: string) => {
-    setNames(names.filter(n => n !== name));
+    updateNames(names.filter(n => n !== name));
     const newAssignments = { ...assignments };
     delete newAssignments[name];
-    setAssignments(newAssignments);
+    updateAssignmentsState(newAssignments);
   };
 
   const addTask = (task: string) => {
     if (task.trim() && !tasks.includes(task.trim())) {
-      setTasks([...tasks, task.trim()]);
+      updateTasks([...tasks, task.trim()]);
     }
   };
 
   const removeTask = (task: string) => {
-    setTasks(tasks.filter(t => t !== task));
+    updateTasks(tasks.filter(t => t !== task));
   };
 
   const reorderTasks = (startIndex: number, endIndex: number) => {
     const result = Array.from(tasks);
     const [removed] = result.splice(startIndex, 1);
     result.splice(endIndex, 0, removed);
-    setTasks(result);
+    updateTasks(result);
   };
 
   return (
